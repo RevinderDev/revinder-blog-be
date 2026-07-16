@@ -1,0 +1,43 @@
+services:
+  revinder-blog-be:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: revinder-blog-be
+    ports:
+      - "$APP_PORT:$APP_PORT"
+    stdin_open: true
+    tty: true
+    env_file:
+      - .env
+
+#   company-db:
+#     image: postgres:17.5
+#     container_name: company-db
+#     environment:
+#       - POSTGRES_USER=${POSTGRES__DB_USER}
+#       - POSTGRES_PASSWORD=${POSTGRES__DB_PASSWORD}
+#       - POSTGRES_DB=${POSTGRES__DB}
+#     ports:
+#       - "5435:5432"
+#     volumes:
+#       - pgdata:/var/lib/postgresql/data
+#     healthcheck:
+#       test: [ "CMD-SHELL", "pg_isready -d ${POSTGRES__DB} -U ${POSTGRES__DB_USER}" ]
+#       interval: 1s
+#       timeout: 5s
+#       retries: 10
+#     networks:
+#       - company_network
+#
+# networks:
+#   company_network:
+#     name: company_network
+#
+volumes:
+  company_backend:
+    external: true
+
+#   alembic:
+#     external: true
+#   pgdata:
