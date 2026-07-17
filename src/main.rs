@@ -61,13 +61,21 @@ where
     }
 }
 
+#[derive(Deserialize, Validate, Debug)]
+#[garde(transparent)]
+struct UserEmail(#[garde(email)] String);
+
+#[derive(Deserialize, Validate, Debug)]
+#[garde(transparent)]
+struct UserPassword(#[garde(length(min = 15))] String);
+
 #[derive(Deserialize, Debug, Validate)]
 struct CreateUserRequest {
-    #[garde(email)]
-    email: String,
+    #[garde(dive)]
+    email: UserEmail,
 
-    #[garde(length(min = 15))]
-    password: String,
+    #[garde(dive)]
+    password: UserPassword,
 }
 
 async fn create_user(
