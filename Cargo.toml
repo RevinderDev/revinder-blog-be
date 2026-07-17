@@ -4,9 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-axum = { version = "0.8.9" }
+anyhow = "1.0.103"
+axum = { version = "0.8.9", features = ["macros"] }
+axum-valid = { version = "0.25.0", default-features = false, features = ["garde", "basic"] }
 dotenvy = "0.15.7"
 envy = "0.4.2"
+garde = { version = "0.23.0", features = ["derive", "email"] }
 log = "0.4.33"
 serde = { version = "1.0.228", features = ["derive"] }
 tokio = { version = "1.52.4", features = ["macros", "rt-multi-thread"] }

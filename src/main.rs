@@ -1,35 +1,44 @@
+use axum::http::StatusCode;
+use axum::response::IntoResponse;
 use log::info;
-use std::net::SocketAddr;
 
 use axum::{Router, extract::Json, routing::post};
+use axum_valid::Garde;
+use garde::Validate;
 use serde::Deserialize;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
-use std::env;
-use std::error::Error;
-
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug, Validate)]
 struct CreateUserRequest {
+    #[garde(email)]
     email: String,
+
+    #[garde(length(min = 15))]
     password: String,
 }
 
-async fn create_user(Json(payload): Json<CreateUserRequest>) {}
+async fn create_user(Garde(payload): Garde<Json<CreateUserRequest>>) -> impl IntoResponse {
+    info!("Received payload: {:#?}", payload);
+    info!("Received payload: {:#?}", payload.email);
+    info!("Received payload: {:#?}", payload.password);
+
+    StatusCode::OK
+}
 
 #[derive(Deserialize)]
 struct AppConfig {
     port: u16,
 }
 
-fn load_env() -> AppConfig {
+fn load_configuration() -> AppConfig {
     dotenvy::dotenv().ok();
     envy::prefixed("APP_").from_env::<AppConfig>().unwrap()
 }
 
 #[tokio::main]
-async fn main() {
-    let config = load_env();
+async fn main() -> anyhow::Result<()> {
+    let config = load_configuration();
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
@@ -46,4 +55,5 @@ async fn main() {
     info!("Starting server on `{}`", addr);
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
+    Ok(())
 }
