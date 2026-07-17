@@ -1,37 +1,14 @@
-use axum::http::StatusCode;
-use axum::response::IntoResponse;
 use figment::Figment;
 use figment::providers::Env;
 use log::info;
 
 use axum::{Router, routing::post};
-use garde::Validate;
 use serde::Deserialize;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
 
-use revinder_blog_be::common::{Email, Password};
-use revinder_blog_be::validation::ValidatedJson;
-
-#[derive(Deserialize, Debug, Validate)]
-struct CreateUserRequest {
-    #[garde(dive)]
-    email: Email,
-
-    #[garde(dive)]
-    password: Password,
-}
-
-async fn create_user(
-    ValidatedJson(payload): ValidatedJson<CreateUserRequest>,
-) -> impl IntoResponse {
-    info!("Received payload: {:#?}", payload);
-    info!("Received payload: {:#?}", payload.email);
-    info!("Received payload: {:#?}", payload.password);
-
-    StatusCode::OK
-}
+use revinder_blog_be::user::create_user;
 
 #[derive(Deserialize, Debug)]
 struct ServerConfiguration {
