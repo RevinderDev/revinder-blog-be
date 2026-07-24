@@ -24,6 +24,12 @@ impl<'r> sqlx::Decode<'r, sqlx::Sqlite> for Email {
     }
 }
 
+impl From<String> for Email {
+    fn from(value: String) -> Self {
+        Email(value)
+    }
+}
+
 impl<'q> sqlx::Encode<'q, sqlx::Sqlite> for Email {
     fn encode_by_ref(
         &self,
@@ -54,5 +60,11 @@ impl<'q> sqlx::Encode<'q, sqlx::Sqlite> for Password {
         buf: &mut <sqlx::Sqlite as sqlx::Database>::ArgumentBuffer,
     ) -> Result<sqlx::encode::IsNull, sqlx::error::BoxDynError> {
         <String as sqlx::Encode<'q, sqlx::Sqlite>>::encode_by_ref(&self.0, buf)
+    }
+}
+
+impl From<String> for Password {
+    fn from(value: String) -> Self {
+        Password(value)
     }
 }

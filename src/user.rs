@@ -49,12 +49,14 @@ pub async fn create_user(
     State(state): State<Arc<AppState>>,
     ValidatedJson(payload): ValidatedJson<CreateUserRequest>,
 ) -> impl IntoResponse {
-    let user: UserEntity =
-        sqlx::query_as("INSERT INTO users (email, password) VALUES (?, ?) RETURNING *;")
-            .bind(payload.email)
-            .bind(payload.password)
-            .fetch_one(&state.pool)
-            .await
-            .unwrap();
+    let user: UserEntity = sqlx::query_as!(
+        UserEntity,
+        "INSERT INTO users (email, password) VALUES (?, ?) RETURNING *;",
+        payload.email,
+        payload.password
+    )
+    .fetch_one(&state.pool)
+    .await
+    .unwrap();
     Json(user)
 }
