@@ -2,9 +2,7 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::extract::State;
-use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use log::info;
 
 use garde::Validate;
 use serde::{Deserialize, Serialize};
@@ -30,6 +28,7 @@ struct UserEntity {
     id: i64,
     email: Email,
     password: Password,
+    is_activated: bool,
 }
 
 // pub async fn get_users() {

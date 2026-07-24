@@ -3,3 +3,9 @@ all:
 
 format:
 	cargo fix --allow-dirty
+
+up:
+	sqlx migrate run
+
+down: 
+	sqlx migrate revert
