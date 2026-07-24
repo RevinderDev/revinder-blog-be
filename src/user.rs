@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use axum::Json;
 use axum::extract::State;
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
@@ -27,27 +28,34 @@ pub struct CreateUserRequest {
 #[derive(FromRow, Serialize, Deserialize)]
 struct UserEntity {
     id: i64,
-    email: String,
-    password: String,
+    email: Email,
+    password: Password,
 }
 
+// pub async fn get_users() {
+//     let user: Option<UserEntity> = sqlx::query_as("SELECT id, email, password FROM users")
+//         .fetch_optional(&state.pool)
+//         .await
+//         .unwrap();
+//
+//     if let Some(user) = user {
+//         info!("Fetched user {:#?}", user.email);
+//     } else {
+//         info!("No user found");
+//     }
+// }
+
+// TODO: Should have some tracing included.
 pub async fn create_user(
     State(state): State<Arc<AppState>>,
     ValidatedJson(payload): ValidatedJson<CreateUserRequest>,
 ) -> impl IntoResponse {
-    let user: Option<UserEntity> = sqlx::query_as("SELECT id, email, password FROM users")
-        .fetch_optional(&state.pool)
-        .await
-        .unwrap();
-
-    if let Some(user) = user {
-        info!("Fetched user {}", user.email);
-    } else {
-        info!("No user found");
-    }
-    info!("Received payload: {:#?}", payload);
-    info!("Received payload: {:#?}", payload.email);
-    info!("Received payload: {:#?}", payload.password);
-
-    StatusCode::OK
+    let user: UserEntity =
+        sqlx::query_as("INSERT INTO users (email, password) VALUES (?, ?) RETURNING *;")
+            .bind(payload.email)
+            .bind(payload.password)
+            .fetch_one(&state.pool)
+            .await
+            .unwrap();
+    Json(user)
 }
