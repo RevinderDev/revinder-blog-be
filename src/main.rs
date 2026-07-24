@@ -1,36 +1,32 @@
-use figment::Figment;
-use figment::providers::Env;
+use std::time::Duration;
+use std::{str::FromStr, sync::Arc};
+
 use log::info;
 
 use axum::{Router, routing::post};
-use serde::Deserialize;
+use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
 
 use revinder_blog_be::user::create_user;
 
-#[derive(Deserialize, Debug)]
-struct ServerConfiguration {
-    port: u16,
-}
-
-#[derive(Deserialize, Debug)]
-struct Configuration {
-    app: ServerConfiguration,
-}
-
-fn load_configuration() -> Configuration {
-    dotenvy::dotenv().ok();
-    Figment::new()
-        .merge(Env::raw().split("__"))
-        .extract()
-        .unwrap()
-}
+use revinder_blog_be::config::{AppState, load_configuration};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = load_configuration();
+    let db_options = SqliteConnectOptions::from_str(&config.db.connection_string)?
+        .create_if_missing(true)
+        .journal_mode(sqlx::sqlite::SqliteJournalMode::Wal)
+        .busy_timeout(Duration::from_secs(5));
+
+    let pool = SqlitePoolOptions::new()
+        .max_connections(5)
+        .connect_with(db_options)
+        .await
+        .unwrap();
+    let app_state = Arc::new(AppState { pool });
     tracing_subscriber::fmt()
         .with_env_filter(
             EnvFilter::try_from_default_env()
@@ -38,11 +34,14 @@ async fn main() -> anyhow::Result<()> {
                 .unwrap(),
         )
         .init();
-    let app = Router::new().route("/", post(create_user)).layer(
-        TraceLayer::new_for_http()
-            .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
-            .on_response(DefaultOnResponse::new().level(Level::INFO)),
-    );
+    let app = Router::new()
+        .route("/", post(create_user))
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
+                .on_response(DefaultOnResponse::new().level(Level::INFO)),
+        )
+        .with_state(app_state);
 
     let port = config.app.port;
     let addr = format!("0.0.0.0:{port}");
