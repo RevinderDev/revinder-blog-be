@@ -1,10 +1,13 @@
 use std::time::Duration;
 use std::{str::FromStr, sync::Arc};
 
+use axum::http::StatusCode;
 use log::info;
 
 use axum::{Router, routing::post};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
+use tower_http::catch_panic::CatchPanicLayer;
+use tower_http::timeout::{RequestBodyTimeoutLayer, TimeoutLayer};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
 use tracing_subscriber::EnvFilter;
@@ -41,6 +44,12 @@ async fn main() -> anyhow::Result<()> {
                 .make_span_with(DefaultMakeSpan::new().level(Level::INFO))
                 .on_response(DefaultOnResponse::new().level(Level::INFO)),
         )
+        .layer(CatchPanicLayer::new())
+        .layer(TimeoutLayer::with_status_code(
+            StatusCode::REQUEST_TIMEOUT,
+            Duration::from_secs(30),
+        ))
+        .layer(RequestBodyTimeoutLayer::new(Duration::from_secs(30)))
         .with_state(app_state);
 
     let port = config.app.port;

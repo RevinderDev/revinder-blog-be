@@ -1,9 +1,10 @@
 use axum::extract::rejection::JsonRejection;
-use axum::response::{IntoResponse, Response};
 use axum::{extract::FromRequest, http::StatusCode};
 
 use axum::extract::Json;
 use garde::Validate;
+
+use crate::errors::{BoxedAppError, bad_request, custom};
 
 #[derive(Debug)]
 pub struct ValidatedJson<T>(pub T);
@@ -21,36 +22,21 @@ where
     T: Validate<Context = ()>,
     S: Send + Sync,
 {
-    type Rejection = Response;
+    type Rejection = BoxedAppError;
 
     async fn from_request(req: axum::extract::Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Json(payload) = match Json::<T>::from_request(req, state).await {
-            Ok(value) => value,
-            Err(rejection) => {
-                let status = match rejection {
-                    JsonRejection::JsonDataError(_)
-                    | JsonRejection::JsonSyntaxError(_)
-                    | JsonRejection::BytesRejection(_) => StatusCode::BAD_REQUEST,
-                    JsonRejection::MissingJsonContentType(_) => StatusCode::UNSUPPORTED_MEDIA_TYPE,
-                    _ => StatusCode::INTERNAL_SERVER_ERROR,
-                };
+        let Json(payload) = Json::<T>::from_request(req, state)
+            .await
+            .map_err(|rejection| match rejection {
+                JsonRejection::MissingJsonContentType(_) => {
+                    custom(StatusCode::UNSUPPORTED_MEDIA_TYPE, rejection.body_text())
+                }
+                _ => bad_request(rejection.body_text()),
+            })?;
 
-                let json_error = serde_json::json!({
-                    "error": "Parsing Error",
-                    "message": rejection.body_text()
-                });
-                return Err((status, Json(json_error)).into_response());
-            }
-        };
-
-        if let Err(errors) = payload.validate() {
-            let json_error = serde_json::json!({
-                "error": "ValidationError",
-                "details": errors
-            });
-
-            return Err((StatusCode::UNPROCESSABLE_ENTITY, Json(json_error)).into_response());
-        }
+        payload
+            .validate()
+            .map_err(|errors| custom(StatusCode::UNPROCESSABLE_ENTITY, errors.to_string()))?;
 
         Ok(ValidatedJson(payload))
     }

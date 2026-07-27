@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use axum::Json;
 use axum::extract::State;
-use axum::response::IntoResponse;
 
 use garde::Validate;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
 use crate::config::AppState;
+use crate::errors::{AppResult, SqlxResultExt};
 use crate::{
     common::{Email, Password},
     validation::ValidatedJson,
@@ -24,7 +24,7 @@ pub struct CreateUserRequest {
 }
 
 #[derive(FromRow, Serialize, Deserialize)]
-struct UserEntity {
+pub struct UserEntity {
     id: i64,
     email: Email,
     password: Password,
@@ -48,7 +48,7 @@ struct UserEntity {
 pub async fn create_user(
     State(state): State<Arc<AppState>>,
     ValidatedJson(payload): ValidatedJson<CreateUserRequest>,
-) -> impl IntoResponse {
+) -> AppResult<Json<UserEntity>> {
     let user: UserEntity = sqlx::query_as!(
         UserEntity,
         "INSERT INTO users (email, password) VALUES (?, ?) RETURNING *;",
@@ -57,6 +57,6 @@ pub async fn create_user(
     )
     .fetch_one(&state.pool)
     .await
-    .unwrap();
-    Json(user)
+    .on_unique_violation("A user with that email address already exists")?;
+    Ok(Json(user))
 }

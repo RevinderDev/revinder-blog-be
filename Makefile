@@ -1,11 +1,14 @@
 all:
-	cargo watch --ignore 'hurl/' -x  'clippy -- -D warnings -W clippy::all' -x 'test' -x 'run'
+	cargo watch --ignore 'hurl/' -x  'clippy -- -D warnings -W clippy::all' -x 'run'
 
 format:
 	cargo fix --allow-dirty
 
-up:
+db-up:
 	sqlx migrate run
 
-down: 
+db-down: 
 	sqlx migrate revert
+
+db-shell:
+	sqlite3 revinder_blog_be.db
