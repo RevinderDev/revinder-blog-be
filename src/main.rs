@@ -2,7 +2,6 @@ use std::time::Duration;
 use std::{str::FromStr, sync::Arc};
 
 use axum::http::StatusCode;
-use log::info;
 
 use axum::{Router, routing::post};
 use sqlx::sqlite::{SqliteConnectOptions, SqlitePoolOptions};
@@ -10,6 +9,7 @@ use tower_http::catch_panic::CatchPanicLayer;
 use tower_http::timeout::{RequestBodyTimeoutLayer, TimeoutLayer};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::Level;
+use tracing::info;
 use tracing_subscriber::EnvFilter;
 
 use revinder_blog_be::user::create_user;

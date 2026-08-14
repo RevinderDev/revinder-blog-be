@@ -34,7 +34,8 @@ pub fn bad_request<S: ToString>(error: S) -> BoxedAppError {
 }
 
 pub fn server_error<S: ToString>(error: S) -> BoxedAppError {
-    custom(StatusCode::INTERNAL_SERVER_ERROR, error.to_string())
+    error!(error = %error.to_string(), "Internal Server Error");
+    custom(StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
 }
 
 pub fn not_found() -> BoxedAppError {
@@ -83,6 +84,7 @@ impl From<sqlx::Error> for BoxedAppError {
                 error!("SQLite storage error: {err}");
                 custom(StatusCode::SERVICE_UNAVAILABLE, "Service Unavailable")
             }
+            sqlx::Error::RowNotFound => not_found(),
             _ => Box::new(err),
         }
     }

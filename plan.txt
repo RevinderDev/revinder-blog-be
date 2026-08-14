@@ -1,0 +1,17 @@
+ Plan:
+ 1. Fix user.rs: split UserEntity (DB row) from UserResponse (no password); replace RETURNING * with explicit columns; add argon2 and hash before insert. Do first — security.
+ 2. errors.rs: rewrite server_error to error! the detail (with source chain) and return generic "Internal Server Error" body.
+ 3. errors.rs: add sqlx::Error::RowNotFound => not_found() arm to From<sqlx::Error>; add SqlxResultExt::on_not_found(msg) for custom 404 text.
+ 4. errors.rs: extract fn log_error_chain(err: &dyn Error) walking source(), use in blanket impl + From<sqlx::Error> so nested causes appear in logs.
+ 5. errors.rs: add internal(...) helper carrying a private detail (logged) + public generic message, so 500s are never ad-hoc again.
+ 6. Add request_id support: tower-http set_request_id/propagate_request_id layers, extract id into error responses via extension so json_error includes {"request_id": ...}.
+ 7. Unify envelope: add Router::fallback(not_found_handler) and method_not_allowed_fallback; swap CatchPanicLayer::new() → CatchPanicLayer::custom(handler) returning your JSON shape;
+    wrap timeout responses (custom layer or HandleErrorLayer) to same shape.
+ 8. Reorder layers so TraceLayer is outermost, then request-id, then timeouts, then CatchPanicLayer innermost; verify against axum 0.8 Router::layer ordering docs before committing.
+ 9. validation.rs: map garde Report into structured errors: [{field, detail}] instead of errors.to_string(); keep 422 status.
+ 10. main.rs: init tracing_subscriber first line; replace every .unwrap() with ? + anyhow::Context; make load_configuration() -> anyhow::Result<Configuration>.
+ 11. main.rs: run sqlx::migrate!().run(&pool) at startup; add axum::serve(...).with_graceful_shutdown(...) on SIGINT/SIGTERM.
+ 12. Drop log dependency, switch info! to tracing::info!.
+ 13. Add tests/errors.rs: assert status + body for unique violation → 409, row-not-found → 404, panic → 500 JSON, unknown route → 404 JSON, bad content-type → 415, invalid email → 422
+     with field name, and that no internal message leaks on 500.
+ 14. Optional: add Sync to AppError bounds; consider RFC 9457 application/problem+json if you want a standard envelope instead of crates.io style.
