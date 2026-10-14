@@ -16,6 +16,7 @@ use revinder_blog_be::user::create_user;
 
 use revinder_blog_be::config::{AppState, load_configuration};
 
+// TODO: Write some test cases.
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let config = load_configuration();

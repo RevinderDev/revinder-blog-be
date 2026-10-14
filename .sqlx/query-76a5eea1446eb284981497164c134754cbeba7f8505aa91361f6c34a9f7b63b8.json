@@ -1,6 +1,6 @@
 {
   "db_name": "SQLite",
-  "query": "INSERT INTO users (email, password) VALUES (?, ?) RETURNING *;",
+  "query": "INSERT INTO users (email, password_hash) VALUES (?, ?) RETURNING id, email, is_activated;",
   "describe": {
     "columns": [
       {
@@ -26,19 +26,8 @@
         }
       },
       {
-        "name": "password",
-        "ordinal": 2,
-        "type_info": "Text",
-        "origin": {
-          "Table": {
-            "table": "users",
-            "name": "password"
-          }
-        }
-      },
-      {
         "name": "is_activated",
-        "ordinal": 3,
+        "ordinal": 2,
         "type_info": "Bool",
         "origin": {
           "Table": {
@@ -54,9 +43,8 @@
     "nullable": [
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "fb1699fcc616138f4b9c0cc770959876028452754c25d819ae46de7510700abf"
+  "hash": "76a5eea1446eb284981497164c134754cbeba7f8505aa91361f6c34a9f7b63b8"
 }

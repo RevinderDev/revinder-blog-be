@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use argon2::password_hash::phc::SaltString;
+use argon2::{Argon2, PasswordHasher};
 use axum::Json;
 use axum::extract::State;
 
@@ -27,7 +29,6 @@ pub struct CreateUserRequest {
 pub struct UserEntity {
     id: i64,
     email: Email,
-    password: Password,
     is_activated: bool,
 }
 
@@ -49,14 +50,26 @@ pub async fn create_user(
     State(state): State<Arc<AppState>>,
     ValidatedJson(payload): ValidatedJson<CreateUserRequest>,
 ) -> AppResult<Json<UserEntity>> {
+    let hashed_password = hash_password(payload.password).await.ok();
     let user: UserEntity = sqlx::query_as!(
         UserEntity,
-        "INSERT INTO users (email, password) VALUES (?, ?) RETURNING *;",
+        "INSERT INTO users (email, password_hash) VALUES (?, ?) RETURNING id, email, is_activated;",
         payload.email,
-        payload.password
+        hashed_password
     )
     .fetch_one(&state.pool)
     .await
     .on_unique_violation("A user with that email address already exists")?;
     Ok(Json(user))
+}
+
+async fn hash_password(password: Password) -> Result<String, argon2::password_hash::Error> {
+    tokio::task::spawn_blocking(move || {
+        let salt = SaltString::generate();
+        let argon2 = Argon2::default();
+        let password_hash = argon2.hash_password_with_salt(password.as_bytes(), salt.as_bytes());
+        password_hash.map(|hash| hash.to_string())
+    })
+    .await
+    .expect("could not spawn_blocking for hash_password")
 }

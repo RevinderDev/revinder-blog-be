@@ -7,8 +7,6 @@ use sqlx::SqlitePool;
 #[derive(Deserialize, Debug)]
 pub struct DatabaseConfiguration {
     pub connection_string: String,
-    // NOTE: Don't like how I need DATABASE_URL and
-    // db__connection_string envs. Fix it later.
 }
 
 #[derive(Deserialize, Debug)]
